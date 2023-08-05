@@ -12,5 +12,4 @@ const connectDB = () => {
         console.log("Connected to MongoDB");
     });
 };
-
-module.exports = connectDB;
+mongodb: module.exports = connectDB;
