@@ -1,8 +1,6 @@
-// playlistController.js
 const Playlist = require("../Models/playlistModel");
-const User = require("../Models/user")
+const User = require("../Models/user");
 
-// Function to create a new playlist
 const createOrUpdatePlaylist = async (req, res) => {
     try {
         const { name, isPublic } = req.body;
@@ -17,7 +15,7 @@ const createOrUpdatePlaylist = async (req, res) => {
             existingPlaylist.isPublic =
                 isPublic === undefined ? true : isPublic;
             const updatedPlaylist = await existingPlaylist.save();
-            res.status(200).json(updatedPlaylist);
+            res.status(200).json({playlist: updatedPlaylist, message: "Playlist updated Successfully!"});
         } else {
             const newPlaylist = new Playlist({
                 name,
@@ -29,14 +27,12 @@ const createOrUpdatePlaylist = async (req, res) => {
 
             user.playlists.push(playlist.id);
             await user.save();
-
-            res.status(201).json(playlist);
+            res.status(201).json({ playlist, message: "Playlist created Successfully!" });
         }
     } catch (error) {
         res.status(500).json({ error: "Error creating or updating playlist" });
     }
 };
-
 
 const addToPlaylist = async (req, res) => {
     try {
@@ -62,16 +58,14 @@ const addToPlaylist = async (req, res) => {
         );
 
         if (existingMovie) {
-            return res
-                .status(409)
-                .json({
-                    error: "Already in playlist",
-                });
+            return res.status(409).json({
+                error: "Already in playlist",
+            });
         }
 
         playlist.items.push(movieData);
         await playlist.save();
-        res.status(200).json(playlist);
+        res.status(200).json({playlist, message: "Movie Successfully Added!"});
     } catch (error) {
         res.status(500).json({ error: "Error adding movie to playlist" });
     }
@@ -80,7 +74,7 @@ const addToPlaylist = async (req, res) => {
 const removeFromPlaylist = async (req, res) => {
     try {
         const { playlistId, movieId } = req.body;
-        const userId = req.user._id
+        const userId = req.user._id;
         if (!userId) {
             return res.status(404).json({ error: "User not found." });
         }
@@ -100,8 +94,7 @@ const removeFromPlaylist = async (req, res) => {
         );
 
         await playlist.save();
-
-        res.status(200).json(playlist);
+        res.status(200).json({playlist, message: "Removed From Playlist!"});
     } catch (error) {
         res.status(500).json({ error: "Error removing movie from playlist" });
     }
@@ -113,19 +106,48 @@ const getUserPlaylists = async (req, res) => {
         const userPlaylists = await Playlist.find({ user: userId });
         res.status(200).json(userPlaylists);
     } catch (error) {
-        console.log(error)
         res.status(500).json({ error: "Error fetching playlists" });
     }
 };
 
 const getPublicPlaylists = async (req, res) => {
     try {
-        const playlists = await Playlist.find({ isPublic: true });
+        const playlists = await Playlist.find({ isPublic: true }).populate(
+            "user",
+            "username email"
+        );
         res.status(200).json(playlists);
     } catch (error) {
-        console.log(error);
         res.status(500).json({ error: "Error fetching playlists" });
     }
 };
 
-module.exports = { createOrUpdatePlaylist, addToPlaylist, removeFromPlaylist, getUserPlaylists, getPublicPlaylists };
+const getPlaylistItemsByName = async (req, res) => {
+    try {
+        const playlistName = req.params.name;
+
+        const playlist = await Playlist.findOne({ name: playlistName });
+
+        if (!playlist) {
+            return res.status(404).json({ error: "Playlist not found." });
+        }
+        const userId = req.user._id;
+
+        if (!playlist.isPublic && playlist.user.toString() !== userId.toString()) {
+            return res.status(403).json({ error: "Access denied." });
+        }
+        const playlistItems = playlist.items;
+        res.status(200).json(playlistItems);
+    } catch (error) {
+        res.status(500).json({ error: "Error fetching playlist items." });
+    }
+};
+
+module.exports = {
+    createOrUpdatePlaylist,
+    addToPlaylist,
+    removeFromPlaylist,
+    getUserPlaylists,
+    getPublicPlaylists,
+    getPlaylistItemsByName,
+};

@@ -48,12 +48,10 @@ const createAndUpdateUser = async (req, res) => {
             }
 
             const newUser = new User({ username, email, password: hashedPassword });
-            console.log(newUser)
             const user = await newUser.save();
-            res.status(201).json(user);
+            res.status(201).json({user, message: "User Created Successfully"});
         }
     } catch (error) {
-        console.log(error)
         res.status(500).json({ error: "Error creating/updating user" });
     }
 };
@@ -75,9 +73,8 @@ const login = async (req, res) => {
             expiresIn: "3h",
         });
 
-        res.status(200).json({ token });
+        res.status(200).json({ user, token });
     } catch (error) {
-        console.log(error)
         res.status(500).json({ error: "Error during login." });
     }
 };

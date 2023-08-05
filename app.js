@@ -4,11 +4,11 @@ const connectDB = require("./Database/db");
 const userRoutes = require("./Routes/userRoutes");
 const playlistRoutes = require("./Routes/playlistRoutes");
 const requireAuth = require("./Middlewares/authMiddleware");
-
+const cors = require('cors')
 require("dotenv").config();
 
 const app = express();
-
+app.use(cors())
 app.use(bodyParser.json());
 
 connectDB();
