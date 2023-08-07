@@ -1,5 +1,6 @@
 const Playlist = require("../Models/playlistModel");
 const User = require("../Models/user");
+const jwt = require("jsonwebtoken")
 
 const createOrUpdatePlaylist = async (req, res) => {
     try {
@@ -15,7 +16,10 @@ const createOrUpdatePlaylist = async (req, res) => {
             existingPlaylist.isPublic =
                 isPublic === undefined ? true : isPublic;
             const updatedPlaylist = await existingPlaylist.save();
-            res.status(200).json({playlist: updatedPlaylist, message: "Playlist updated Successfully!"});
+            res.status(200).json({
+                playlist: updatedPlaylist,
+                message: "Playlist updated Successfully!",
+            });
         } else {
             const newPlaylist = new Playlist({
                 name,
@@ -27,7 +31,10 @@ const createOrUpdatePlaylist = async (req, res) => {
 
             user.playlists.push(playlist.id);
             await user.save();
-            res.status(201).json({ playlist, message: "Playlist created Successfully!" });
+            res.status(201).json({
+                playlist,
+                message: "Playlist created Successfully!",
+            });
         }
     } catch (error) {
         res.status(500).json({ error: "Error creating or updating playlist" });
@@ -65,7 +72,10 @@ const addToPlaylist = async (req, res) => {
 
         playlist.items.push(movieData);
         await playlist.save();
-        res.status(200).json({playlist, message: "Movie Successfully Added!"});
+        res.status(200).json({
+            playlist,
+            message: "Movie Successfully Added!",
+        });
     } catch (error) {
         res.status(500).json({ error: "Error adding movie to playlist" });
     }
@@ -94,7 +104,7 @@ const removeFromPlaylist = async (req, res) => {
         );
 
         await playlist.save();
-        res.status(200).json({playlist, message: "Removed From Playlist!"});
+        res.status(200).json({ playlist, message: "Removed From Playlist!" });
     } catch (error) {
         res.status(500).json({ error: "Error removing movie from playlist" });
     }
@@ -131,14 +141,28 @@ const getPlaylistItemsByName = async (req, res) => {
         if (!playlist) {
             return res.status(404).json({ error: "Playlist not found." });
         }
-        const userId = req.user._id;
-
-        if (!playlist.isPublic && playlist.user.toString() !== userId.toString()) {
-            return res.status(403).json({ error: "Access denied." });
+        if (playlist.isPublic === false) {
+            const authHeader = req.header("Authorization");
+            if (
+                !authHeader ||
+                !authHeader.startsWith("Bearer ") ||
+                authHeader.split(" ")[1] === "null"
+            ) {
+                return res
+                    .status(401)
+                    .json({ error: "Login to view the playlist!" });
+            }
+            const token = authHeader.split(" ")[1];
+            const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
+            const userId = decodedToken.userId;
+            if (playlist.user.toString() !== userId.toString()) {
+                return res.status(403).json({ error: "Access denied." });
+            }
         }
         const playlistItems = playlist.items;
         res.status(200).json(playlistItems);
     } catch (error) {
+        console.log(error)
         res.status(500).json({ error: "Error fetching playlist items." });
     }
 };

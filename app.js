@@ -15,7 +15,7 @@ app.use(bodyParser.json());
 connectDB();
 
 app.use("/api", userRoutes);
-app.use("/api/playlists", requireAuth, playlistRoutes);
+app.use("/api/playlists", playlistRoutes);
 app.use("/api/movie", requireAuth, movieRoutes);
 
 app.listen(process.env.PORT, () => {
